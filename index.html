@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echofy | Aesthetic Soundboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- CSS VARIABLES & RESET --- */
+        :root {
+            --bg-dark: #0f0f13;
+            --card-bg: #1a1a20;
+            --text-main: #ffffff;
+            --text-muted: #a0a0a0;
+            --neon-purple: #b026ff;
+            --neon-pink: #ff00cc;
+            --neon-cyan: #00ffff;
+            --neon-red: #ff3333;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* --- WELCOME SCREEN (Mandatory) --- */
+        #welcome-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 15, 19, 0.98);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.5s ease;
+        }
+
+        .welcome-content { text-align: center; }
+
+        .welcome-content h1 {
+            font-size: 3.5rem; margin-bottom: 30px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple));
+            background-clip: text; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .start-btn {
+            padding: 15px 50px; font-size: 1.5rem; font-weight: 600;
+            background: var(--neon-purple); color: white; border: none; border-radius: 50px;
+            cursor: pointer; box-shadow: 0 0 30px rgba(176, 38, 255, 0.5); transition: 0.3s;
+        }
+        .start-btn:hover { transform: scale(1.05); background: var(--neon-pink); }
+
+        /* --- HEADER --- */
+        header {
+            padding: 2rem 5%; display: flex; flex-direction: column; align-items: center;
+            gap: 1.5rem; background: radial-gradient(circle at top, #1f1f2e 0%, var(--bg-dark) 70%);
+        }
+
+        .logo {
+            font-size: 2.5rem; font-weight: 700;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
+            background-clip: text; -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 20px rgba(176, 38, 255, 0.3);
+        }
+
+        .search-container { position: relative; width: 100%; max-width: 600px; }
+
+        #search-input {
+            width: 100%; padding: 12px 50px 12px 20px; border-radius: 30px;
+            border: 2px solid #333; background: var(--card-bg); color: white;
+            font-size: 1rem; outline: none; transition: 0.3s;
+        }
+        #search-input:focus { border-color: var(--neon-purple); box-shadow: 0 0 15px rgba(176, 38, 255, 0.2); }
+
+        .voice-btn {
+            position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+            background: none; border: none; color: var(--neon-cyan);
+            font-size: 1.2rem; cursor: pointer; transition: 0.3s;
+        }
+        .voice-btn:hover { color: white; }
+        .voice-active { color: var(--neon-pink); animation: pulse 1s infinite; }
+
+        /* --- CONTROLS --- */
+        .controls-area { padding: 0 5%; margin-bottom: 2rem; display: flex; flex-direction: column; gap: 1.5rem; align-items: center; }
+        .categories { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+
+        .cat-btn {
+            padding: 8px 16px; border-radius: 20px; border: 1px solid #333;
+            background: var(--card-bg); color: var(--text-muted); cursor: pointer; transition: 0.3s;
+        }
+        .cat-btn:hover, .cat-btn.active {
+            background: var(--neon-purple); color: white; border-color: var(--neon-purple);
+            box-shadow: 0 0 10px rgba(176, 38, 255, 0.4);
+        }
+
+        .chaos-btn {
+            padding: 8px 20px; border-radius: 20px; border: 1px solid #333;
+            background: var(--card-bg); color: var(--text-muted); cursor: pointer;
+            transition: 0.3s; display: flex; align-items: center; gap: 8px; font-weight: 600;
+        }
+        .chaos-btn:hover { border-color: var(--neon-red); color: white; }
+        .chaos-btn.chaos-active {
+            background: transparent; border-color: var(--neon-red); color: var(--neon-red);
+            box-shadow: 0 0 15px rgba(255, 51, 51, 0.4); animation: borderPulse 2s infinite;
+        }
+
+        .volume-control {
+            display: flex; align-items: center; gap: 15px; width: 100%; max-width: 400px;
+            background: rgba(255,255,255,0.05); padding: 10px 20px; border-radius: 15px;
+        }
+
+        input[type=range] {
+            appearance: none; -webkit-appearance: none;
+            width: 100%; height: 6px; background: #333; border-radius: 5px; outline: none;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px;
+            background: var(--neon-pink); border-radius: 50%; cursor: pointer;
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        /* --- GRID --- */
+        .sound-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px; padding: 0 5% 4rem 5%; width: 100%; max-width: 1400px; margin: 0 auto;
+        }
+        .sound-grid.grid-focus { grid-template-columns: repeat(2, 1fr); max-width: 800px; }
+        @media (max-width: 600px) { .sound-grid.grid-focus { gap: 10px; } }
+
+        .sound-card {
+            background: var(--card-bg); border-radius: 15px; padding: 20px;
+            text-align: center; transition: 0.3s; position: relative;
+            border-bottom: 3px solid transparent; display: flex; flex-direction: column;
+            align-items: center; justify-content: space-between; height: 180px;
+        }
+        .sound-card:hover {
+            transform: translateY(-5px); background: #25252e;
+            border-bottom-color: var(--neon-cyan); box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .sound-icon { font-size: 3rem; margin-bottom: 10px; color: var(--text-muted); transition: 0.3s; }
+        .sound-card:hover .sound-icon { color: var(--neon-purple); text-shadow: 0 0 15px rgba(176, 38, 255, 0.5); }
+        .sound-name { font-weight: 600; font-size: 1.1rem; margin-bottom: 15px; }
+
+        .play-btn {
+            width: 50px; height: 50px; border-radius: 50%; border: none;
+            background: linear-gradient(135deg, var(--neon-purple), var(--neon-pink));
+            color: white; font-size: 1.2rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; transition: 0.2s;
+            box-shadow: 0 4px 15px rgba(176, 38, 255, 0.3);
+        }
+        .play-btn:active { transform: scale(0.95); }
+        .sound-card.playing { border-color: var(--neon-pink); box-shadow: 0 0 20px rgba(255, 0, 204, 0.2); }
+
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: #ff3333; color: white; padding: 10px 20px; border-radius: 20px;
+            font-size: 0.9rem; z-index: 1000; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+        @keyframes borderPulse { 0% { border-color: var(--neon-red); } 50% { border-color: #ff8888; } 100% { border-color: var(--neon-red); } }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-screen">
+        <div class="welcome-content">
+            <h1>Welcome to Echofy</h1>
+           
+            <button class="start-btn" onclick="unlockAudio()">Enter Experience</button>
+        </div>
+    </div>
+
+    <header>
+        <div class="logo">Echofy</div>
+        <div class="search-container">
+            <input type="text" id="search-input" placeholder="Search sounds...">
+            <button class="voice-btn" id="voice-btn"><i class="fa-solid fa-microphone"></i></button>
+        </div>
+    </header>
+
+    <div class="controls-area">
+        <div class="categories" id="category-container">
+            <button class="cat-btn active" data-cat="all">All</button>
+            <button class="cat-btn" data-cat="instruments">Instruments</button> <button class="cat-btn" data-cat="animals">Animals</button>
+            <button class="cat-btn" data-cat="effects">Effects</button>
+            <button class="cat-btn" data-cat="human">Human</button>
+            <button class="cat-btn" data-cat="ui">UI/Buttons</button>
+            <button class="cat-btn" data-cat="meme">Meme</button>
+            <button class="cat-btn" data-cat="nature">Nature</button>
+            <button class="chaos-btn" id="chaos-toggle"><i class="fa-solid fa-fire"></i> Chaos Mode</button>
+        </div>
+
+        <div class="volume-control">
+            <i class="fa-solid fa-volume-low" style="color: var(--neon-cyan)"></i>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.1" value="0.5">
+            <i class="fa-solid fa-volume-high" style="color: var(--neon-pink)"></i>
+        </div>
+    </div>
+
+    <div id="toast">Audio Error</div>
+    <main class="sound-grid" id="sound-grid"></main>
+
+    <script>
+        // --- DATA ---
+        const soundData = [
+            // --- NEW INSTRUMENTS ---
+            { id: 'guitar', name: 'Guitar', cat: 'instruments', icon: 'fa-guitar', url: 'sounds/guitar.mp3' },
+            { id: 'piano', name: 'Piano', cat: 'instruments', icon: 'fa-music', url: 'sounds/piano.mp3' },
+            { id: 'drums', name: 'Drums', cat: 'instruments', icon: 'fa-drum', url: 'sounds/drums.mp3' },
+            { id: 'flute', name: 'Flute', cat: 'instruments', icon: 'fa-wind', url: 'sounds/flute.mp3' },
+            { id: 'tabla', name: 'Tabla', cat: 'instruments', icon: 'fa-circle-dot', url: 'sounds/tabla.mp3' },
+            { id: 'dhol', name: 'Dhol', cat: 'instruments', icon: 'fa-drum', url: 'sounds/dhol.mp3' },
+
+            // Animals
+            { id: 'dog', name: 'Dog Bark', cat: 'animals', icon: 'fa-dog', url: 'sounds/dog.mp3' },
+            { id: 'cat', name: 'Cat Meow', cat: 'animals', icon: 'fa-cat', url: 'sounds/cat.mp3' },
+            { id: 'bird', name: 'Bird', cat: 'animals', icon: 'fa-crow', url: 'sounds/bird.mp3' },
+            { id: 'tiger', name: 'Tiger', cat: 'animals', icon: 'fa-paw', url: 'sounds/tiger.mp3' },
+
+            // Effects
+            { id: 'pop', name: 'Pop', cat: 'effects', icon: 'fa-soap', url: 'sounds/pop.mp3' },
+            { id: 'glass', name: 'Glass Break', cat: 'effects', icon: 'fa-burst', url: 'sounds/glass.mp3' },
+            { id: 'metal', name: 'Metal Hit', cat: 'effects', icon: 'fa-wand-magic-sparkles', url: 'sounds/metal.mp3' },
+            { id: 'laser', name: 'Laser', cat: 'effects', icon: 'fa-wand-magic-sparkles', url: 'sounds/laser.mp3' },
+
+            // Human
+            { id: 'clap', name: 'Clap', cat: 'human', icon: 'fa-hands-clapping', url: 'sounds/clap.mp3' },
+            { id: 'laugh', name: 'Laugh', cat: 'human', icon: 'fa-face-laugh-squint', url: 'sounds/laugh.mp3' },
+            { id: 'cough', name: 'Cough', cat: 'human', icon: 'fa-head-side-cough', url: 'sounds/cough.mp3' },
+            { id: 'sneeze', name: 'Sneeze', cat: 'human', icon: 'fa-virus', url: 'sounds/sneeze.mp3' },
+
+            // UI
+            { id: 'click', name: 'Click', cat: 'ui', icon: 'fa-computer-mouse', url: 'sounds/click.mp3' },
+            { id: 'switch', name: 'Switch', cat: 'ui', icon: 'fa-toggle-on', url: 'sounds/switch.mp3' },
+            { id: 'cd', name: 'Disc Tray', cat: 'ui', icon: 'fa-compact-disc', url: 'sounds/cd.mp3' },
+            { id: 'snap', name: 'Snap', cat: 'ui', icon: 'fa-hand-point-up', url: 'sounds/snap.mp3' },
+
+            // Meme
+            { id: 'bell', name: 'Ding!', cat: 'meme', icon: 'fa-bell', url: 'sounds/bell.mp3' },
+            { id: 'beer', name: 'Beer Open', cat: 'meme', icon: 'fa-beer-mug-empty', url: 'sounds/beer.mp3' },
+            { id: 'door', name: 'Doorbell', cat: 'meme', icon: 'fa-dungeon', url: 'sounds/door.mp3' },
+            { id: 'branch', name: 'Branch', cat: 'meme', icon: 'fa-tree', url: 'sounds/branch.mp3' },
+
+            // Nature
+            { id: 'water', name: 'Water Drop', cat: 'nature', icon: 'fa-droplet', url: 'sounds/water.mp3' },
+            { id: 'ocean', name: 'Ocean', cat: 'nature', icon: 'fa-water', url: 'sounds/ocean.mp3' },
+            { id: 'thunder', name: 'Thunder', cat: 'nature', icon: 'fa-bolt', url: 'sounds/thunder.mp3' },
+            { id: 'fire', name: 'Fire', cat: 'nature', icon: 'fa-fire', url: 'sounds/fire.mp3' }
+        ];
+
+        // --- GLOBAL VARIABLES ---
+        const grid = document.getElementById('sound-grid');
+        const searchInput = document.getElementById('search-input');
+        const voiceBtn = document.getElementById('voice-btn');
+        const catButtons = document.querySelectorAll('.cat-btn');
+        const chaosBtn = document.getElementById('chaos-toggle');
+        const volumeSlider = document.getElementById('volume-slider');
+        const toast = document.getElementById('toast');
+        const welcomeScreen = document.getElementById('welcome-screen');
+
+        let currentCategory = 'all';
+        let globalVolume = 0.5;
+        let isChaosMode = false;
+        let activeAudios = []; 
+
+        // --- UNLOCK AUDIO ---
+        function unlockAudio() {
+            welcomeScreen.style.opacity = '0';
+            setTimeout(() => welcomeScreen.style.display = 'none', 500);
+            const silent = new Audio("data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAGZGF0YQQAAAAAAA==");
+            silent.play().catch(() => {});
+        }
+
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.style.display = 'block';
+            setTimeout(() => toast.style.display = 'none', 3000);
+        }
+
+        // --- RENDER ---
+        function renderSounds(filterText = '') {
+            grid.innerHTML = ''; 
+            const filtered = soundData.filter(sound => {
+                const matchesCat = currentCategory === 'all' || sound.cat === currentCategory;
+                const matchesSearch = sound.name.toLowerCase().includes(filterText.toLowerCase());
+                return matchesCat && matchesSearch;
+            });
+
+            if (currentCategory !== 'all' && filterText === '') grid.classList.add('grid-focus');
+            else grid.classList.remove('grid-focus');
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<p style="color:var(--text-muted); width:100%; text-align:center;">No sounds found 😔</p>';
+                return;
+            }
+
+            filtered.forEach(sound => {
+                const card = document.createElement('div');
+                card.className = 'sound-card';
+                card.id = `card-${sound.id}`;
+                card.innerHTML = `
+                    <i class="fa-solid ${sound.icon} sound-icon"></i>
+                    <h3 class="sound-name">${sound.name}</h3>
+                    <button class="play-btn" onclick="playSound('${sound.id}', '${sound.url}')"><i class="fa-solid fa-play"></i></button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // --- PLAY ---
+        function playSound(id, url) {
+            const card = document.getElementById(`card-${id}`);
+            const icon = card.querySelector('.play-btn i');
+            
+            const audio = new Audio(url);
+            audio.volume = globalVolume;
+
+            if (!isChaosMode) {
+                activeAudios.forEach(a => { a.pause(); a.currentTime = 0; });
+                activeAudios = [];
+                document.querySelectorAll('.play-btn i').forEach(i => i.classList.replace('fa-pause', 'fa-play'));
+                document.querySelectorAll('.sound-card').forEach(c => c.classList.remove('playing'));
+            }
+
+            activeAudios.push(audio);
+            
+            audio.play().then(() => {
+                icon.classList.replace('fa-play', 'fa-pause');
+                card.classList.add('playing');
+            }).catch(e => {
+                console.error("Error:", e);
+                showToast("⚠️ File not found! Did you download it?");
+                card.style.borderBottomColor = "red";
+            });
+
+            audio.onended = () => {
+                icon.classList.replace('fa-pause', 'fa-play');
+                card.classList.remove('playing');
+                activeAudios = activeAudios.filter(a => a !== audio);
+            };
+        }
+
+        // --- LISTENERS ---
+        chaosBtn.addEventListener('click', () => {
+            isChaosMode = !isChaosMode;
+            chaosBtn.classList.toggle('chaos-active');
+        });
+
+        catButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.cat-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                currentCategory = btn.getAttribute('data-cat');
+                renderSounds(searchInput.value);
+            });
+        });
+
+        searchInput.addEventListener('input', (e) => renderSounds(e.target.value));
+        volumeSlider.addEventListener('input', (e) => {
+            globalVolume = e.target.value;
+            activeAudios.forEach(audio => audio.volume = globalVolume);
+        });
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            const recognition = new SpeechRecognition();
+            recognition.continuous = false; recognition.lang = 'en-US';
+            voiceBtn.addEventListener('click', () => { recognition.start(); voiceBtn.classList.add('voice-active'); });
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                searchInput.value = transcript;
+                renderSounds(transcript);
+                voiceBtn.classList.remove('voice-active');
+            };
+            recognition.onend = () => voiceBtn.classList.remove('voice-active');
+        } else { voiceBtn.style.display = 'none'; }
+
+        renderSounds();
+    </script>
+</body>
+</html>
