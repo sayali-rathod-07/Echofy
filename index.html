@@ -29,9 +29,11 @@
             color: var(--text-main);
             min-height: 100vh;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* --- WELCOME SCREEN (Mandatory) --- */
+        /* --- WELCOME SCREEN --- */
         #welcome-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 15, 19, 0.98);
@@ -129,6 +131,7 @@
         .sound-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
             gap: 20px; padding: 0 5% 4rem 5%; width: 100%; max-width: 1400px; margin: 0 auto;
+            flex-grow: 1;
         }
         .sound-grid.grid-focus { grid-template-columns: repeat(2, 1fr); max-width: 800px; }
         @media (max-width: 600px) { .sound-grid.grid-focus { gap: 10px; } }
@@ -165,6 +168,22 @@
 
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
         @keyframes borderPulse { 0% { border-color: var(--neon-red); } 50% { border-color: #ff8888; } 100% { border-color: var(--neon-red); } }
+
+        /* --- FOOTER --- */
+        footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            background: rgba(26, 26, 32, 0.8);
+            border-top: 1px solid #333;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+        
+        footer span {
+            color: var(--neon-purple);
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -172,7 +191,7 @@
     <div id="welcome-screen">
         <div class="welcome-content">
             <h1>Welcome to Echofy</h1>
-           
+            <p style="color: #ccc; margin-bottom: 20px;">Download sound files to 'sounds' folder first!</p>
             <button class="start-btn" onclick="unlockAudio()">Enter Experience</button>
         </div>
     </div>
@@ -188,7 +207,8 @@
     <div class="controls-area">
         <div class="categories" id="category-container">
             <button class="cat-btn active" data-cat="all">All</button>
-            <button class="cat-btn" data-cat="instruments">Instruments</button> <button class="cat-btn" data-cat="animals">Animals</button>
+            <button class="cat-btn" data-cat="instruments">Instruments</button>
+            <button class="cat-btn" data-cat="animals">Animals</button>
             <button class="cat-btn" data-cat="effects">Effects</button>
             <button class="cat-btn" data-cat="human">Human</button>
             <button class="cat-btn" data-cat="ui">UI/Buttons</button>
@@ -205,12 +225,17 @@
     </div>
 
     <div id="toast">Audio Error</div>
+    
     <main class="sound-grid" id="sound-grid"></main>
+
+    <footer>
+        &copy; 2025 Echofy. All rights reserved. | Made by <span>Sayali Pandit Rathod</span>
+    </footer>
 
     <script>
         // --- DATA ---
         const soundData = [
-            // --- NEW INSTRUMENTS ---
+            // Instruments
             { id: 'guitar', name: 'Guitar', cat: 'instruments', icon: 'fa-guitar', url: 'sounds/guitar.mp3' },
             { id: 'piano', name: 'Piano', cat: 'instruments', icon: 'fa-music', url: 'sounds/piano.mp3' },
             { id: 'drums', name: 'Drums', cat: 'instruments', icon: 'fa-drum', url: 'sounds/drums.mp3' },
@@ -268,6 +293,8 @@
         let currentCategory = 'all';
         let globalVolume = 0.5;
         let isChaosMode = false;
+        
+        // This array stores objects: { id: 'dog', audio: AudioObject }
         let activeAudios = []; 
 
         // --- UNLOCK AUDIO ---
@@ -314,22 +341,52 @@
             });
         }
 
-        // --- PLAY ---
+        // --- PLAY SOUND (TOGGLE LOGIC ) ---
         function playSound(id, url) {
             const card = document.getElementById(`card-${id}`);
             const icon = card.querySelector('.play-btn i');
-            
+
+            // 1. CHECK IF THIS SOUND IS ALREADY PLAYING (TOGGLE OFF)
+            const existingSoundIndex = activeAudios.findIndex(item => item.id === id);
+
+            if (existingSoundIndex !== -1) {
+                // It is playing! Stop it.
+                const item = activeAudios[existingSoundIndex];
+                item.audio.pause();
+                item.audio.currentTime = 0; // Reset to start
+                
+                // UI Update
+                icon.classList.replace('fa-pause', 'fa-play');
+                card.classList.remove('playing');
+
+                // Remove from array
+                activeAudios.splice(existingSoundIndex, 1);
+                return; // Stop function here
+            }
+
+            // 2. IF NOT PLAYING -> PREPARE NEW SOUND
             const audio = new Audio(url);
             audio.volume = globalVolume;
 
+            // 3. CHAOS MODE CHECK
             if (!isChaosMode) {
-                activeAudios.forEach(a => { a.pause(); a.currentTime = 0; });
-                activeAudios = [];
-                document.querySelectorAll('.play-btn i').forEach(i => i.classList.replace('fa-pause', 'fa-play'));
-                document.querySelectorAll('.sound-card').forEach(c => c.classList.remove('playing'));
+                // Stop all other sounds
+                activeAudios.forEach(item => {
+                    item.audio.pause();
+                    item.audio.currentTime = 0;
+                    
+                    // Reset UI for stopped sound
+                    const stoppedCard = document.getElementById(`card-${item.id}`);
+                    if (stoppedCard) {
+                        stoppedCard.querySelector('.play-btn i').classList.replace('fa-pause', 'fa-play');
+                        stoppedCard.classList.remove('playing');
+                    }
+                });
+                activeAudios = []; // Clear array
             }
 
-            activeAudios.push(audio);
+            // 4. PLAY THE NEW SOUND
+            activeAudios.push({ id: id, audio: audio });
             
             audio.play().then(() => {
                 icon.classList.replace('fa-play', 'fa-pause');
@@ -340,10 +397,12 @@
                 card.style.borderBottomColor = "red";
             });
 
+            // 5. CLEANUP WHEN AUDIO ENDS
             audio.onended = () => {
                 icon.classList.replace('fa-pause', 'fa-play');
                 card.classList.remove('playing');
-                activeAudios = activeAudios.filter(a => a !== audio);
+                // Remove specific audio from array
+                activeAudios = activeAudios.filter(item => item.audio !== audio);
             };
         }
 
@@ -351,6 +410,19 @@
         chaosBtn.addEventListener('click', () => {
             isChaosMode = !isChaosMode;
             chaosBtn.classList.toggle('chaos-active');
+            
+            // Optional: Stop everything if turning chaos mode OFF (to avoid confusion)
+            if (!isChaosMode) {
+                activeAudios.forEach(item => {
+                    item.audio.pause();
+                    const c = document.getElementById(`card-${item.id}`);
+                    if(c) {
+                        c.classList.remove('playing');
+                        c.querySelector('.play-btn i').classList.replace('fa-pause', 'fa-play');
+                    }
+                });
+                activeAudios = [];
+            }
         });
 
         catButtons.forEach(btn => {
@@ -363,9 +435,13 @@
         });
 
         searchInput.addEventListener('input', (e) => renderSounds(e.target.value));
+        
+        // Fix: Update volume for ALL active audio objects
         volumeSlider.addEventListener('input', (e) => {
             globalVolume = e.target.value;
-            activeAudios.forEach(audio => audio.volume = globalVolume);
+            activeAudios.forEach(item => {
+                item.audio.volume = globalVolume;
+            });
         });
 
         if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
